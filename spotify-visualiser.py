@@ -1,5 +1,5 @@
 import os
-from flask import Flask, session, request, redirect
+from flask import Flask, session, request, redirect, render_template
 from flask_session import Session
 import spotipy
 import uuid
@@ -42,27 +42,11 @@ def index():
     # Step 4. Signed in, display data
     spotify = spotipy.Spotify(auth_manager=auth_manager)
 
-    auth_manager = spotipy.oauth2.SpotifyOAuth(cache_path=session_cache_path())
-    if not auth_manager.get_cached_token():
-        return redirect('/')
-    spotify = spotipy.Spotify(auth_manager=auth_manager)
-    track = spotify.current_user_playing_track()
-    currently_playing_song = ""
-    if not track is None and track['is_playing']:
-        currently_playing_song = track['item']['artists'][0]['name']
-    else:
-        currently_playing_song = "No track currently playing."
-
-    return f'<h2>Hi {spotify.me()["display_name"]}, ' \
-               f'<small><a href="/sign_out">[sign out]<a/></small></h2>' \
-               f'<a href="/playlists">my playlists</a> | ' \
-               f'<a href="/currently_playing">currently playing</a> | ' \
-               f'<a href="/current_user">me</a>' \
-               f'<h2>Currently playing - {currently_playing_song}</h2>' \
- \
-           @ app.route('/sign_out')
+    return render_template('index.html',display_name=spotify.me()["display_name"],
+                           currently_playing_song=currently_playing())
 
 
+@ app.route('/sign_out')
 def sign_out():
     try:
         # Remove the CACHE file (.cache-test) so that a new user can authorize.
@@ -81,7 +65,11 @@ def currently_playing():
     spotify = spotipy.Spotify(auth_manager=auth_manager)
     track = spotify.current_user_playing_track()
     if not track is None and track['is_playing']:
-        return track['item']['artists'][0]['name']
+        num_of_artists = len(track['item']['artists'])
+        artists = []
+        for i in range(num_of_artists):
+            artists.append(track['item']['artists'][i]['name'])
+        return track['item']['name'], str(artists)[1:-1]
     return "No track currently playing."
 
 
